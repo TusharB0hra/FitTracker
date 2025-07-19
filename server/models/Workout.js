@@ -6,6 +6,7 @@ const workoutSchema = new mongoose.Schema({
   sets: { type: Number },
   reps: { type: Number },
   videoUrl: { type: String },
+  image: { type: String },
   date: { type: Date, default: Date.now }
 });
 
