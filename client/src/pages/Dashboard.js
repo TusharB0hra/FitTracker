@@ -4,17 +4,19 @@ import Sidebar from "../components/layout/Sidebar";
 import Topbar from "../components/layout/Topbar";
 
 const Dashboard = () => {
-  // Replace the single 'form' state with individual state variables
+  // State for workout form inputs
   const [name, setName] = useState("");
   const [bodyPart, setBodyPart] = useState("");
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
-  const [image, setImage] = useState(null); // State for the file input
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
+  // State for workouts list
   const [workouts, setWorkouts] = useState([]);
 
-  // ✅ Fetch workouts on load
+  // Fetch workouts on initial render
   useEffect(() => {
     fetchWorkouts();
   }, []);
@@ -24,11 +26,11 @@ const Dashboard = () => {
     setWorkouts(res.data);
   };
 
+  // Handle form submission
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!name) return; // Check for 'name' instead of 'form.name'
+    if (!name) return;
 
-    // Create a FormData object to handle both text and file data
     const formData = new FormData();
     formData.append("name", name);
     formData.append("bodyPart", bodyPart);
@@ -36,36 +38,35 @@ const Dashboard = () => {
     formData.append("reps", reps);
     formData.append("videoUrl", videoUrl);
     if (image) {
-      formData.append("image", image); // Append the image file
+      formData.append("image", image);
     }
 
-    // Update the axios post request to send FormData
     await axios.post("http://localhost:5000/api/workouts", formData, {
       headers: {
-        "Content-Type": "multipart/form-data", // Important for file uploads
+        "Content-Type": "multipart/form-data",
       },
     });
 
-    // Reset individual state variables after submission
+    // Reset form
     setName("");
     setBodyPart("");
     setSets("");
     setReps("");
     setVideoUrl("");
-    setImage(null); // Reset file input
-
+    setImage(null);
+    setImagePreview(null);
     fetchWorkouts();
   };
 
+  // Handle delete
   const handleDelete = async (id) => {
     await axios.delete(`http://localhost:5000/api/workouts/${id}`);
     fetchWorkouts();
   };
 
-  // ✅ Converts YouTube to embed format
-  function convertToEmbed(url) {
+  // Convert YouTube link to embed
+  const convertToEmbed = (url) => {
     let embedUrl = url;
-
     if (url.includes("watch?v=")) {
       embedUrl = url.replace("watch?v=", "embed/");
     } else if (url.includes("youtu.be/")) {
@@ -73,10 +74,8 @@ const Dashboard = () => {
     } else if (url.includes("shorts/")) {
       embedUrl = url.replace("shorts/", "embed/");
     }
-
-    // ✅ Remove query parameters like ?si=xyz
     return embedUrl.split("?")[0];
-  }
+  };
 
   return (
     <div style={{ display: "flex" }}>
@@ -89,85 +88,131 @@ const Dashboard = () => {
             <input
               type="text"
               placeholder="Exercise Name"
-              value={name} // Use 'name' state
-              onChange={(e) => setName(e.target.value)} // Update 'name' state
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               required
             />
             <input
               type="text"
               placeholder="Body Part"
-              value={bodyPart} // Use 'bodyPart' state
-              onChange={(e) => setBodyPart(e.target.value)} // Update 'bodyPart' state
+              value={bodyPart}
+              onChange={(e) => setBodyPart(e.target.value)}
             />
             <input
               type="number"
               placeholder="Sets"
-              value={sets} // Use 'sets' state
-              onChange={(e) => setSets(e.target.value)} // Update 'sets' state
+              value={sets}
+              onChange={(e) => setSets(e.target.value)}
             />
             <input
               type="number"
               placeholder="Reps"
-              value={reps} // Use 'reps' state
-              onChange={(e) => setReps(e.target.value)} // Update 'reps' state
+              value={reps}
+              onChange={(e) => setReps(e.target.value)}
             />
             <input
               type="text"
               placeholder="YouTube Video URL"
-              value={videoUrl} // Use 'videoUrl' state
-              onChange={(e) => setVideoUrl(e.target.value)} // Update 'videoUrl' state
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
             />
             <input
               type="file"
-              onChange={(e) => setImage(e.target.files[0])} // Handle file selection
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                setImage(file);
+                if (file) {
+                  setImagePreview(URL.createObjectURL(file));
+                }
+              }}
             />
-            <button type="submit" style={{ marginLeft: "10px" }}>
-              ➕ Add
+
+            {/* Image Preview */}
+            {imagePreview && (
+              <div style={{ marginTop: "10px" }}>
+                <p style={{ fontSize: "14px" }}>📸 Image Preview:</p>
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  style={{ width: "200px", borderRadius: "8px" }}
+                />
+              </div>
+            )}
+
+            <button type="submit" style={{ marginTop: "10px" }}>
+              ➕ Add Workout
             </button>
           </form>
 
           <h3 style={{ marginTop: "30px" }}>📋 Your Workouts</h3>
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {workouts.map((w) => (
-              <li key={w._id} style={{ marginBottom: "20px" }}>
-                <strong>{w.name}</strong> – {w.bodyPart} – {w.sets}x{w.reps}
+
+          {/* Workout Cards Grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+              gap: "20px",
+              paddingTop: "20px",
+            }}
+          >
+            {workouts.map((w, i) => (
+              <div
+                key={i}
+                style={{
+                  border: "1px solid #ccc",
+                  borderRadius: "10px",
+                  padding: "15px",
+                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                  background: "#fff",
+                }}
+              >
+                <h3>{w.name}</h3>
+                <p><strong>Body Part:</strong> {w.bodyPart}</p>
+                <p><strong>Sets x Reps:</strong> {w.sets} x {w.reps}</p>
+
+                {w.videoUrl && (
+                  <iframe
+                    width="100%"
+                    height="200"
+                    src={convertToEmbed(w.videoUrl)}
+                    title="Workout Video"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ marginTop: "10px", borderRadius: "8px" }}
+                  />
+                )}
+
+                {w.image && (
+                  <img
+                    src={`http://localhost:5000/uploads/${w.image}`}
+                    alt="Workout"
+                    style={{
+                      width: "100%",
+                      marginTop: "10px",
+                      borderRadius: "8px",
+                    }}
+                  />
+                )}
+
                 <button
                   onClick={() => handleDelete(w._id)}
                   style={{
-                    marginLeft: "10px",
-                    background: "red",
+                    background: "#ff4d4d",
                     color: "#fff",
+                    padding: "6px 12px",
                     border: "none",
-                    padding: "3px 6px",
-                    cursor: "pointer"
+                    borderRadius: "5px",
+                    marginTop: "10px",
+                    cursor: "pointer",
                   }}
                 >
                   ❌ Delete
                 </button>
-
-                {w.videoUrl && (
-                  <div style={{ marginTop: "10px" }}>
-                    <p>{convertToEmbed(w.videoUrl)}</p>
-
-                    <iframe
-                      width="320"
-                      height="180"
-                      src={convertToEmbed(w.videoUrl)}
-                      title={w.name}
-                      frameBorder="0"
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                )}
-                {/* You can display the image if there's an 'imageUrl' in your workout object */}
-                {w.imageUrl && (
-                  <div style={{ marginTop: "10px" }}>
-                    <img src={w.imageUrl} alt={w.name} style={{ maxWidth: "320px", maxHeight: "180px" }} />
-                  </div>
-                )}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       </div>
     </div>
